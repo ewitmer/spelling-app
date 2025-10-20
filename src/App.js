@@ -23,6 +23,23 @@ export default function SpellingPracticeApp() {
   const [isCorrect, setIsCorrect] = useState(null);
   const [completedCount, setCompletedCount] = useState(0);
 
+  // Save to localStorage whenever these values change
+  useEffect(() => {
+    try {
+      localStorage.setItem('spellingProgress', JSON.stringify(wordProgress));
+    } catch (e) {
+      console.log('localStorage not available');
+    }
+  }, [wordProgress]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('spellingCompleted', completedCount.toString());
+    } catch (e) {
+      console.log('localStorage not available');
+    }
+  }, [completedCount]);
+
   useEffect(() => {
     const progress = {};
     wordList.forEach(word => {
@@ -129,6 +146,13 @@ export default function SpellingPracticeApp() {
       setWordList(words);
       setCompletedCount(0);
       setIsEditing(false);
+      try {
+        localStorage.setItem('spellingWordList', words.join('\n'));
+        localStorage.removeItem('spellingProgress');
+        localStorage.removeItem('spellingCompleted');
+      } catch (e) {
+        console.log('localStorage not available');
+      }
     }
   };
 
@@ -177,12 +201,29 @@ export default function SpellingPracticeApp() {
           <p className="text-xl text-gray-600 mb-8">
             You've mastered all {wordList.length} spelling words!
           </p>
-          <button
-            onClick={() => setIsEditing(true)}
-            className="flex items-center gap-2 px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-semibold mx-auto"
-          >
-            <Edit3 size={20} /> Load New Words
-          </button>
+          <div className="flex gap-4 justify-center">
+            <button
+              onClick={() => setIsEditing(true)}
+              className="flex items-center gap-2 px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-semibold"
+            >
+              <Edit3 size={20} /> Load New Words
+            </button>
+            <button
+              onClick={() => {
+                setCompletedCount(0);
+                try {
+                  localStorage.removeItem('spellingProgress');
+                  localStorage.removeItem('spellingCompleted');
+                } catch (e) {
+                  console.log('localStorage not available');
+                }
+                window.location.reload();
+              }}
+              className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-semibold"
+            >
+              Practice Again
+            </button>
+          </div>
         </div>
       </div>
     );
