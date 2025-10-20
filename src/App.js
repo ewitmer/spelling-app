@@ -41,11 +41,20 @@ export default function SpellingPracticeApp() {
   }, [completedCount]);
 
   useEffect(() => {
-    const progress = {};
+    const progress = { ...wordProgress };
+    let needsUpdate = false;
+    
     wordList.forEach(word => {
-      progress[word] = { correct: 0, incorrect: 0 };
+      if (!progress[word]) {
+        progress[word] = { correct: 0, incorrect: 0 };
+        needsUpdate = true;
+      }
     });
-    setWordProgress(progress);
+    
+    if (needsUpdate) {
+      setWordProgress(progress);
+    }
+    
     selectNextWord(progress);
   }, [wordList]);
 
