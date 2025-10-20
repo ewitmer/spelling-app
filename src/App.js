@@ -10,18 +10,71 @@ export default function SpellingPracticeApp() {
     'excellent', 'privilege', 'rhythm', 'occurrence'
   ];
 
-  const [showNext, setShowNext] = useState(false);
-  const [isSpeaking, setIsSpeaking] = useState(false);
-
+  // Load saved data from localStorage or use defaults
   const [isEditing, setIsEditing] = useState(false);
-  const [wordListText, setWordListText] = useState(defaultWords.join('\n'));
-  const [wordList, setWordList] = useState(defaultWords);
-  const [wordProgress, setWordProgress] = useState({});
+  const [wordListText, setWordListText] = useState(() => {
+    try {
+      const saved = localStorage.getItem('spellingWordList');
+      if (saved) {
+        return saved;
+      }
+    } catch (e) {
+      console.log('localStorage not available');
+    }
+    return defaultWords.join('\n');
+  });
+  const [wordList, setWordList] = useState(() => {
+    try {
+      const saved = localStorage.getItem('spellingWordList');
+      if (saved) {
+        const words = saved.split('\n').filter(w => w.trim()).map(w => w.trim());
+        if (words.length > 0) {
+          return words;
+        }
+      }
+    } catch (e) {
+      console.log('localStorage not available');
+    }
+    return defaultWords;
+  });
+  const [wordProgress, setWordProgress] = useState(() => {
+    try {
+      const savedWords = localStorage.getItem('spellingWordList');
+      const savedProgress = localStorage.getItem('spellingProgress');
+      
+      if (savedWords && savedProgress) {
+        const words = savedWords.split('\n').filter(w => w.trim()).map(w => w.trim());
+        const progress = JSON.parse(savedProgress);
+        const progressKeys = Object.keys(progress);
+        
+        // Check if progress matches current word list
+        const progressMatchesWords = progressKeys.length > 0 && 
+          progressKeys.every(key => words.includes(key)) &&
+          words.every(word => progressKeys.includes(word));
+        
+        if (progressMatchesWords) {
+          return progress;
+        }
+      }
+    } catch (e) {
+      console.log('localStorage not available');
+    }
+    return {};
+  });
+  const [completedCount, setCompletedCount] = useState(() => {
+    try {
+      const saved = localStorage.getItem('spellingCompleted');
+      return saved ? parseInt(saved) : 0;
+    } catch {
+      return 0;
+    }
+  });
   const [currentWord, setCurrentWord] = useState('');
   const [userInput, setUserInput] = useState('');
   const [feedback, setFeedback] = useState('');
   const [isCorrect, setIsCorrect] = useState(null);
-  const [completedCount, setCompletedCount] = useState(0);
+  const [showNext, setShowNext] = useState(false);
+  const [isSpeaking, setIsSpeaking] = useState(false);
 
   // Save to localStorage whenever these values change
   useEffect(() => {
@@ -55,7 +108,14 @@ export default function SpellingPracticeApp() {
       setWordProgress(progress);
     }
     
-    selectNextWord(progress);
+    const availableWords = wordList.filter(word => {
+      const p = progress[word];
+      return p.correct < 1;
+    });
+
+    if (availableWords.length > 0 && !currentWord) {
+      selectNextWord(progress);
+    }
   }, [wordList]);
 
   const selectNextWord = (progress) => {
@@ -69,20 +129,16 @@ export default function SpellingPracticeApp() {
       return;
     }
 
-    // Create a weighted array where words appear multiple times for better randomization
     const weightedWords = [];
     availableWords.forEach(word => {
-      // Add each word 3 times to the pool for better shuffle
       weightedWords.push(word, word, word);
     });
     
-    // Shuffle the array
     for (let i = weightedWords.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
       [weightedWords[i], weightedWords[j]] = [weightedWords[j], weightedWords[i]];
     }
     
-    // Pick first word that's different from current
     let randomWord = weightedWords[0];
     for (let word of weightedWords) {
       if (word !== currentWord) {
