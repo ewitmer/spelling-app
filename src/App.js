@@ -35,10 +35,7 @@ export default function SpellingPracticeApp() {
   const selectNextWord = (progress) => {
     const availableWords = wordList.filter(word => {
       const p = progress[word];
-      if (p.incorrect > 0) {
-        return p.correct < 3;
-      }
-      return p.correct < 2;
+      return p.correct < 1;
     });
 
     if (availableWords.length === 0) {
@@ -46,7 +43,28 @@ export default function SpellingPracticeApp() {
       return;
     }
 
-    const randomWord = availableWords[Math.floor(Math.random() * availableWords.length)];
+    // Create a weighted array where words appear multiple times for better randomization
+    const weightedWords = [];
+    availableWords.forEach(word => {
+      // Add each word 3 times to the pool for better shuffle
+      weightedWords.push(word, word, word);
+    });
+    
+    // Shuffle the array
+    for (let i = weightedWords.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [weightedWords[i], weightedWords[j]] = [weightedWords[j], weightedWords[i]];
+    }
+    
+    // Pick first word that's different from current
+    let randomWord = weightedWords[0];
+    for (let word of weightedWords) {
+      if (word !== currentWord) {
+        randomWord = word;
+        break;
+      }
+    }
+    
     setCurrentWord(randomWord);
     setUserInput('');
     setFeedback('');
@@ -87,16 +105,11 @@ export default function SpellingPracticeApp() {
     const newProgress = { ...wordProgress };
     
     if (isAnswerCorrect) {
-      newProgress[currentWord].correct += 1;
+      newProgress[currentWord].correct = 1;
       setFeedback('Correct! Great job! 🎉');
-      
-      const requiredCorrect = newProgress[currentWord].incorrect > 0 ? 3 : 2;
-      if (newProgress[currentWord].correct >= requiredCorrect) {
-        setCompletedCount(prev => prev + 1);
-      }
+      setCompletedCount(prev => prev + 1);
     } else {
       newProgress[currentWord].incorrect += 1;
-      newProgress[currentWord].correct = 0;
       setFeedback(`Not quite. The correct spelling is: ${currentWord}`);
     }
 
@@ -121,8 +134,7 @@ export default function SpellingPracticeApp() {
 
   const remainingWords = wordList.filter(word => {
     const p = wordProgress[word];
-    const requiredCorrect = p?.incorrect > 0 ? 3 : 2;
-    return !p || p.correct < requiredCorrect;
+    return !p || p.correct < 1;
   }).length;
 
   if (isEditing) {
@@ -214,9 +226,7 @@ export default function SpellingPracticeApp() {
                 </button>
                 {wordProgress[currentWord] && (
                   <p className="text-sm text-gray-600 mt-4">
-                    {wordProgress[currentWord].incorrect > 0 
-                      ? `Need 3 correct (${wordProgress[currentWord].correct}/3)` 
-                      : `Need 2 correct (${wordProgress[currentWord].correct}/2)`}
+                    Spell correctly once to master this word
                   </p>
                 )}
               </div>
